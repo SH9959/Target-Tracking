@@ -12,8 +12,14 @@ iswrite = False#结果视频是否保存写入
 txtw = False# 估计轨迹是否输出到txt
 BOX = True# 是否开启采样框
 
-savename = "ResultVideos/0.mp4"# 写入的路径
-video = 'RawVideos/0.mp4'#需要分析的视频文件路径
+savename = "ResultVideos/new_1.mp4"# 写入的路径
+video = 'RawVideos/1.mp4'#需要分析的视频文件路径
+#RawVideos/0.mp4 篮球
+#RawVideos/0.mp4  字典遮挡
+#以上是有标注的
+
+#src/snk1.mp4  台球
+#src/12test.mp4 两物体
 
 if __name__ == '__main__':
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置图形里面中文为黑体
@@ -38,7 +44,7 @@ if __name__ == '__main__':
         n1 += 1
         print('为：', thres)
     # 设定阈值，HSV空间
-    obj = [[[ 0,  67, 108], [85, 255, 236]], ]# cxk篮球阈值
+    obj = [[[76,  56, 191], [132, 123, 255]], ]# 调好的阈值，可以注释掉
     num_of_objs = len(obj)#要追踪的物体个数
 
     OB = [[[], []], ]# 记录观测数据
@@ -77,6 +83,8 @@ if __name__ == '__main__':
     boxs = []# 采样框们
     res = [[] for i in range(num_of_objs)]# 采样框的返回值们
     find = [1 for i in range(num_of_objs)]# 标记是否找到
+
+
     while True:
         # 读取帧
         fn += 1
@@ -117,7 +125,7 @@ if __name__ == '__main__':
                 continue
             (X1, P1) = kfts[i].predict()  # 先做预测，再在预测的地方做观测，这句写到这不影响后面，反而符合采样框的逻辑
 
-            # 根据阈值构建掩膜
+            # 根据阈值进行二值化
             mask = cv2.inRange(hsv, np.array(obj[i][0]), np.array(obj[i][1]))
             # 腐蚀操作
             mask = cv2.erode(mask, None, iterations=2)
@@ -129,7 +137,7 @@ if __name__ == '__main__':
             mask = cv2.dilate(mask, None, iterations=2)
 
             if BOX == True:# 采样框
-                if find[i] == 1:
+                if find[i] == 1:# 上一帧框内有观测
                     boxs[i].set(cx=int(X1[0]), cy=int(X1[2]))  # 在卡尔曼预测位置给一个采样框，在框里观测
                 else:# 采样框丢失处理
                     boxs[i].boxlost()
@@ -144,6 +152,7 @@ if __name__ == '__main__':
                 cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)# 输出采样框
             else:
                 mask_roi = mask.copy()
+
             # 轮廓检测
             cnts = cv2.findContours(mask_roi, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]#在采样框里检测
             # 初始化瓶盖圆形轮廓质心
@@ -194,8 +203,7 @@ if __name__ == '__main__':
                     pts.appendleft(center)
             else:
                 #未检测到 ，把预测值当观测值
-                #boxs[i].boxlost()
-                #boxs[i].set(cx=width // 2, cy=height // 2, h=height, w=width)# 目标丢失，全视野搜索
+
                 find[i] = 0# 标记置为0，表示该帧未搜索到，那么下一帧将全视野检索
                 # 记录未观测到的帧号
                 UNOB[i].append(fn)
@@ -242,8 +250,9 @@ if __name__ == '__main__':
         cv2.namedWindow('Frame', cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
         cv2.imshow('Frame', frame)
         FPS.append(fps)
-        if iswrite:
+        if iswrite == True:
             writer.write(frame)  # 视频保存
+            print('结果视频写入成功')
         # 键盘检测，检测到esc键退出
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
@@ -258,10 +267,11 @@ if __name__ == '__main__':
     #print('y轴最大观测值', max(OB[i][1]))
     if txtw == True:
         for j in range(len(ES)):
-            f = open('ESpoints/{}.txt'.format(j), 'w')
+            f = open('ESpoints/new_E{}.txt'.format(j), 'w')
             for i in range(len(ES[j][0])):
                 f.write(str(i + 1) + ' ' + str(ES[j][0][i]) + ' ' + str(ES[j][1][i]) + '\n')
             f.close()
+        print('txt写入成功')
     print('帧数：', fn)
     #print(len(ES[0][0]))
     for i in range(num_of_objs):

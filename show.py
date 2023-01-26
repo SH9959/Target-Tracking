@@ -3,7 +3,7 @@ frame_num = 1
 pos = {}
 name = f"f{frame_num}.png"
 pic = cv2.imread(name)
-LAST_FRAME = 329
+LAST_FRAME = 328
 def end():
     print(pos)
     exit(0)
